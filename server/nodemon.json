@@ -1,0 +1,5 @@
+{
+    "verbose": true,
+    "watch": ["*"],
+    "ignore": ["assets","src/test","joined.gql"]
+}

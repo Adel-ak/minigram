@@ -1,0 +1,17 @@
+type User {
+  uid: ID,
+  displayName: String,
+  email: EmailAddress,
+  avatar: String,
+}
+
+input UserFormInput {
+  displayName: String,
+  email: EmailAddress,
+  password: String,
+  avatar: String,
+}
+
+extend type Mutation {
+  signUp(form: UserFormInput): Boolean
+} 

@@ -1,0 +1,31 @@
+
+input NewPost {
+  images: [String],
+  caption: String,
+}
+
+type Post {
+  _id: ID,
+  user: User
+  uid: ID,
+  images: [String],
+  caption: String,
+  likes: Int,
+  comments: [String],
+  createdDate: DateTime,
+}
+
+type UserPosts {
+  user: User,
+  posts: [Post],
+}
+
+extend type Mutation {
+  createPost(form: NewPost): Post,
+  deletePost(docId: ID): Boolean,
+}
+
+extend type Query {
+  getPosts(startAt: ID): [Post],
+  getUserPosts(uid: ID, startAt: ID): UserPosts,
+}
