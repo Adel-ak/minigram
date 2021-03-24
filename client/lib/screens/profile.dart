@@ -14,7 +14,12 @@ import 'package:provider/provider.dart';
 import '../GStyle.dart';
 
 class Profile extends StatefulWidget {
-  Profile({Key key}) : super(key: key);
+  final String heroTag;
+  final String avatar;
+  final String userUid;
+  final String userName;
+  Profile({Key key, this.heroTag, this.avatar, this.userUid, this.userName})
+      : super(key: key);
 
   @override
   _ProfileState createState() => _ProfileState();
@@ -131,7 +136,7 @@ class _ProfileState extends State<Profile> {
                           downloadImage(images[0]);
                         },
                       )),
-                  currentUser != null && currentUser.uid == currentUser.uid
+                  currentUser != null && currentUser.uid == userUid
                       ? Container(
                           padding: EdgeInsets.zero,
                           color: Gs().primaryColor,
@@ -186,12 +191,11 @@ class _ProfileState extends State<Profile> {
   }
 
   @override
-  Widget build(BuildContext ctx) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.blue, //or set color with: Color(0xFF0000FF)
-    ));
+  Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
-    String userUid = FirebaseAuth.instance.currentUser.uid;
+    String userUid = widget.userUid != null
+        ? widget.userUid
+        : FirebaseAuth.instance.currentUser.uid;
 
     QueryOptions options = QueryOptions(document: gql("""
      query GetPosts(\$startAt: ID, \$uid : ID){
@@ -201,10 +205,14 @@ class _ProfileState extends State<Profile> {
             images
             uid
             _id
+            user {
+              displayName
+              avatar
+            }
           }
         }
       }
-      """), variables: {'uid': userUid});
+      """), variables: {'uid': userUid}, fetchPolicy: FetchPolicy.networkOnly);
 
     return Scaffold(
         backgroundColor: Gs().primaryColor,
@@ -248,56 +256,13 @@ class _ProfileState extends State<Profile> {
                         )
                       ],
                       flexibleSpace: Center(
-                          child: AnimatedBuilder(
-                              animation: _sc,
-                              builder: (_, __) {
-                                double screenWidth =
-                                    MediaQuery.of(context).size.width;
-                                double imageSize = 200.0 - _sc.offset;
-
-                                Interpolate interpolateRight = Interpolate(
-                                  inputRange: [0, 150],
-                                  outputRange: [
-                                    (screenWidth / 4),
-                                    (screenWidth - 90)
-                                  ],
-                                  extrapolate: Extrapolate.clamp,
-                                );
-
-                                Interpolate interpolateBottom = Interpolate(
-                                  inputRange: [0, 150],
-                                  outputRange: [20, 8],
-                                  extrapolate: Extrapolate.clamp,
-                                );
-
-                                return Stack(
-                                  children: [
-                                    Positioned(
-                                        bottom:
-                                            interpolateBottom.eval(_sc.offset),
-                                        right:
-                                            interpolateRight.eval(_sc.offset),
-                                        child: Container(
-                                          margin: EdgeInsets.only(
-                                              top: MediaQuery.of(context)
-                                                  .padding
-                                                  .top),
-                                          width:
-                                              imageSize < 40 ? 40 : imageSize,
-                                          height:
-                                              imageSize < 40 ? 40 : imageSize,
-                                          child: Hero(
-                                            tag: 'dp',
-                                            child: CircleAvatar(
-                                              backgroundImage: NetworkImage(
-                                                  FirebaseAuth.instance
-                                                      .currentUser.photoURL),
-                                            ),
-                                          ),
-                                        )),
-                                  ],
-                                );
-                              })),
+                        child: HeaderAppBar(
+                          sc: _sc,
+                          heroTag: widget.heroTag,
+                          avatar: widget.avatar,
+                          userName: widget.userName,
+                        ),
+                      ),
                     ),
                     SliverAppBar(
                       toolbarHeight: MediaQuery.of(context).padding.top,
@@ -322,26 +287,29 @@ class _ProfileState extends State<Profile> {
                                       ? EdgeInsets.only(top: 10)
                                       : null,
                                   child: Builder(
-                                      builder: (BuildContext ctx) => !_removing
-                                              .containsKey(data[index]['_id'])
-                                          ? InkWell(
-                                              child: buildImage(
-                                                  data[index]['images'][0]),
-                                              onTap: () => _showBottomSheet(
-                                                  ctx,
-                                                  data[index]['images'],
-                                                  data[index]['uid'],
-                                                  data[index]['_id'], () async {
-                                                await refetch();
-                                              }),
-                                            )
-                                          : Loading()));
+                                      builder: (BuildContext context) =>
+                                          !_removing.containsKey(
+                                                  data[index]['_id'])
+                                              ? InkWell(
+                                                  child: buildImage(
+                                                      data[index]['images'][0]),
+                                                  onTap: () => _showBottomSheet(
+                                                      context,
+                                                      data[index]['images'],
+                                                      data[index]['uid'],
+                                                      data[index]['_id'],
+                                                      () async {
+                                                    await refetch();
+                                                  }),
+                                                )
+                                              : Loading()));
                             }, childCount: data.length),
                             gridDelegate:
                                 SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: screenWidth / _gridNum,
-                              childAspectRatio: 100 / 100,
-                            ),
+                                    maxCrossAxisExtent: screenWidth / _gridNum,
+                                    childAspectRatio: 100 / 100,
+                                    crossAxisSpacing: 2,
+                                    mainAxisSpacing: 2),
                           )
                         : SliverFillRemaining(
                             child: Loading(),
@@ -362,5 +330,90 @@ class Loading extends StatelessWidget {
             valueColor: AlwaysStoppedAnimation<Color>(Gs().secondaryColor),
           ),
         ));
+  }
+}
+
+class HeaderAppBar extends StatelessWidget {
+  final ScrollController sc;
+  final String heroTag;
+  final String avatar;
+  final String userName;
+  HeaderAppBar({this.sc, this.heroTag, this.avatar, this.userName});
+
+  @override
+  Widget build(context) {
+    return AnimatedBuilder(
+        animation: sc,
+        builder: (_, __) {
+          double screenWidth = MediaQuery.of(context).size.width;
+          double imageSize = 180 - sc.offset;
+
+          Interpolate interpolateRightAvatar = Interpolate(
+            inputRange: [0, 150],
+            outputRange: [(screenWidth / 3.5), (screenWidth - 90)],
+            extrapolate: Extrapolate.clamp,
+          );
+
+          Interpolate interpolateBottomAvatar = Interpolate(
+            inputRange: [0, 150],
+            outputRange: [40, 8],
+            extrapolate: Extrapolate.clamp,
+          );
+
+          Interpolate interpolateRightUserName = Interpolate(
+            inputRange: [0, 150],
+            outputRange: [10, 15],
+            extrapolate: Extrapolate.clamp,
+          );
+
+          String displayName = userName != null
+              ? '@$userName'
+              : '@${FirebaseAuth.instance.currentUser.displayName}';
+
+          return Stack(
+            children: [
+              Positioned(
+                  bottom: interpolateRightUserName.eval(sc.offset),
+                  left: 0,
+                  right: 0,
+                  child: Align(
+                      child: Text(displayName,
+                          style: TextStyle(
+                              color: Gs().textColor,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500)))),
+              Positioned(
+                  bottom: interpolateBottomAvatar.eval(sc.offset),
+                  right: interpolateRightAvatar.eval(sc.offset),
+                  child: Container(
+                    margin: EdgeInsets.only(
+                        top: MediaQuery.of(context).padding.top),
+                    width: imageSize < 40 ? 40 : imageSize,
+                    height: imageSize < 40 ? 40 : imageSize,
+                    child: Hero(
+                        tag: heroTag != null ? heroTag : 'dp',
+                        child: CachedNetworkImage(
+                          imageUrl: avatar != null
+                              ? avatar
+                              : FirebaseAuth.instance.currentUser.photoURL,
+                          imageBuilder: (_, imageProvider) {
+                            return CircleAvatar(
+                                backgroundImage: imageProvider,
+                                backgroundColor: Colors.black);
+                          },
+                          progressIndicatorBuilder:
+                              (context, url, downloadProgress) => Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  Gs().secondaryColor),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) =>
+                              Icon(Icons.error),
+                        )),
+                  )),
+            ],
+          );
+        });
   }
 }

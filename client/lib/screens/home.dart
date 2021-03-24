@@ -225,6 +225,7 @@ class _HomeState extends State<Home> {
                             userAvatar: userAvatar,
                             createdDate: createdDate,
                             removeItemFromPosts: removeItemFromPosts,
+                            index: index,
                           );
                         })
                     : Container(

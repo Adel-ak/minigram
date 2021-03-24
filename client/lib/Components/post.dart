@@ -20,6 +20,7 @@ class PostCard extends StatefulWidget {
   final String createdDate;
   final String postId;
   final Function removeItemFromPosts;
+  int index;
 
   PostCard({
     Key key,
@@ -31,6 +32,7 @@ class PostCard extends StatefulWidget {
     this.createdDate,
     this.postId,
     this.removeItemFromPosts,
+    this.index,
   }) : super(key: key);
 
   _PostCard createState() => _PostCard();
@@ -162,9 +164,11 @@ class _PostCard extends State<PostCard> {
               UserInfo(
                   userName: widget.userName,
                   userAvatar: widget.userAvatar,
+                  userUid: widget.userUid,
                   createdDate: widget.createdDate,
                   showOptionSheet: showOptionSheet(context),
-                  imageUri: widget.images[0]),
+                  imageUri: widget.images[0],
+                  index: widget.index),
               MyCarouselSlider(
                 images: widget.images,
                 caption: widget.caption,
@@ -191,16 +195,20 @@ class _PostCard extends State<PostCard> {
 class UserInfo extends StatelessWidget {
   final String userName;
   final String userAvatar;
+  final String userUid;
   final String createdDate;
   final Function showOptionSheet;
   final String imageUri;
+  final int index;
 
   UserInfo(
       {this.userName,
       this.userAvatar,
+      this.userUid,
       this.createdDate,
       this.showOptionSheet,
-      this.imageUri});
+      this.imageUri,
+      this.index});
 
   @override
   Widget build(BuildContext context) {
@@ -210,21 +218,33 @@ class UserInfo extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CachedNetworkImage(
-            imageUrl: userAvatar,
-            imageBuilder: (_, imageProvider) {
-              return CircleAvatar(
-                  backgroundImage: imageProvider,
-                  backgroundColor: Colors.black);
-            },
-            progressIndicatorBuilder: (context, url, downloadProgress) =>
-                Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Gs().secondaryColor),
-              ),
-            ),
-            errorWidget: (context, url, error) => Icon(Icons.error),
-          ),
+          TextButton(
+              onPressed: () {
+                Navigator.pushNamed(context, 'profile', arguments: {
+                  'heroTag': '$userAvatar - $index',
+                  'avatar': userAvatar,
+                  'userUid': userUid,
+                  'userName': userName,
+                });
+              },
+              child: Hero(
+                  tag: '$userAvatar - $index',
+                  child: CachedNetworkImage(
+                    imageUrl: userAvatar,
+                    imageBuilder: (_, imageProvider) {
+                      return CircleAvatar(
+                          backgroundImage: imageProvider,
+                          backgroundColor: Colors.black);
+                    },
+                    progressIndicatorBuilder:
+                        (context, url, downloadProgress) => Center(
+                      child: CircularProgressIndicator(
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Gs().secondaryColor),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Icon(Icons.error),
+                  ))),
           Divider(
             indent: 10,
           ),

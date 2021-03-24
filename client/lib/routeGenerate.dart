@@ -24,7 +24,13 @@ class RouteGenerate {
       case 'home':
         return MaterialPageRoute(builder: (_) => Home());
       case 'profile':
-        return MaterialPageRoute(builder: (_) => Profile());
+        var arguments = setting.arguments as Map;
+        return MaterialPageRoute(
+            builder: (_) => Profile(
+                heroTag: arguments != null ? arguments['heroTag'] : null,
+                avatar: arguments != null ? arguments['avatar'] : null,
+                userName: arguments != null ? arguments['userName'] : null,
+                userUid: arguments != null ? arguments['userUid'] : null));
       case 'login':
         return MaterialPageRoute(builder: (_) => Login());
       case 'signUp':
