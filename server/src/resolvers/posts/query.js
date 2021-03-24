@@ -13,9 +13,11 @@ exports.getPosts = catchAsync(async (_, {startAt = null}, ___) => {
     return data;
 });
 
-exports.getUserPosts = catchAsync(async (_, {uid = null, startAt = null}, ___) => {    
+exports.getUserPosts = catchAsync(async (_, {uid = null, startAt = null}, {user} ) => {   
+
     const posts = admin.firestore().collection('posts');
-    const where = uid ? posts.where('uid', '==', uid) : posts;
+    const userId = uid ? uid : user.uid;
+    const where = userId ? posts.where('uid', '==', userId) : posts;
     const snapShots = await where.orderBy('createdDate','desc')
     .get();
     const data = snapShots.docs.map(doc => {
@@ -26,7 +28,6 @@ exports.getUserPosts = catchAsync(async (_, {uid = null, startAt = null}, ___) =
     });
     
     return {
-        
         posts: data
     };
 });

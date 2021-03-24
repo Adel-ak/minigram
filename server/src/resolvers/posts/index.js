@@ -8,7 +8,8 @@ const {user} = roles;
 
 const resolversComposition = {
   "Mutation.createPost": [isLoggedIn()],
-  "Mutation.deletePost": [isLoggedIn()]
+  "Mutation.deletePost": [isLoggedIn()],
+  "Query.getUserPosts": [isLoggedIn()]
 };
 
 
