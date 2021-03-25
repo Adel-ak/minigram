@@ -1,15 +1,10 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
+import 'package:interpolate/interpolate.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_101/Firebase/firestore.dart';
-import 'package:graphql/client.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:http/http.dart';
-import 'package:http_parser/http_parser.dart';
-import 'package:multi_image_picker/multi_image_picker.dart';
 import '../GStyle.dart';
 
 class ImageSelection extends StatefulWidget {
@@ -23,33 +18,41 @@ class _ImageSelectionState extends State<ImageSelection> {
   List<dynamic> _images;
   List<Map> _albums;
   String _selectedAlbum = "Recent";
+  String _selectedAlbumID;
   File _selectedImage;
   String _error = "";
 
   int _page = 0;
   bool _hasMore = true;
-
+  ScrollController _scrollController = new ScrollController();
   @override
   initState() {
-    loadAssets();
+    loadAssets(assetName: _selectedAlbum);
     super.initState();
   }
 
   Future<void> loadAssets(
-      {String assetName = "Recent", resetImage = false}) async {
+      {String assetName, String assetID, resetImage = false}) async {
     try {
       var result = await PhotoManager.requestPermission();
       if (result) {
         List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
             type: RequestType.image, hasAll: true);
         Iterable<Map<dynamic, dynamic>> albumsNames = albums.map((album) => {
+              'albumID': album.id,
               'name': album.name,
               'count': album.assetCount,
               'list': album.getAssetListPaged
             });
 
-        Map<dynamic, dynamic> selectedAblum =
-            albumsNames.where((element) => element['name'] == assetName).first;
+        Map<dynamic, dynamic> selectedAblum = albumsNames.where((element) {
+          if (assetID != null) {
+            return element['albumID'] == assetID;
+          } else {
+            return element['name'] == assetName;
+          }
+        }).first;
+
         var pageNum = resetImage ? 0 : _page;
 
         List<AssetEntity> assets = await selectedAblum['list'](pageNum, 25);
@@ -75,6 +78,7 @@ class _ImageSelectionState extends State<ImageSelection> {
             _selectedImage = assetsList[0];
             _images = assetsList;
             _selectedAlbum = selectedAblum['name'];
+            _selectedAlbumID = selectedAblum['albumID'];
             _page = 1;
             _hasMore = true;
           } else {
@@ -104,7 +108,7 @@ class _ImageSelectionState extends State<ImageSelection> {
               child: ListView.builder(
                   itemCount: _albums.length,
                   itemBuilder: (_, index) {
-                    if (_albums[index]["name"] == _selectedAlbum) {
+                    if (_albums[index]["albumID"] == _selectedAlbumID) {
                       return Container();
                     }
 
@@ -115,7 +119,7 @@ class _ImageSelectionState extends State<ImageSelection> {
                                 EdgeInsets.only(left: 20))),
                         onPressed: () {
                           loadAssets(
-                              assetName: _albums[index]['name'],
+                              assetID: _albums[index]['albumID'],
                               resetImage: true);
                           Navigator.pop(context);
                         },
@@ -147,15 +151,46 @@ class _ImageSelectionState extends State<ImageSelection> {
 
     return GraphQLConsumer(builder: (client) {
       return Scaffold(
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: Gs().secondaryColor,
-            child: Icon(Icons.arrow_right_rounded,
-                color: Gs().primaryColor, size: 50),
-            onPressed: () {
-              Navigator.pushNamed(context, 'newPost', arguments: {
-                'image': _selectedImage,
-              });
-            },
+          floatingActionButton: Stack(
+            children: <Widget>[
+              AnimatedBuilder(
+                animation: _scrollController,
+                builder: (context, child) {
+                  Interpolate interpolateRightUserName = Interpolate(
+                    inputRange: [300, 500],
+                    outputRange: [-60, 0],
+                    extrapolate: Extrapolate.clamp,
+                  );
+                  return Positioned(
+                      bottom: interpolateRightUserName
+                          .eval(_scrollController.offset),
+                      left: 30,
+                      child: child);
+                },
+                child: FloatingActionButton(
+                  backgroundColor: Gs().secondaryColor,
+                  child: Icon(Icons.arrow_upward_rounded,
+                      color: Gs().primaryColor, size: 25),
+                  onPressed: () {
+                    _scrollController.animateTo(0,
+                        duration: Duration(milliseconds: 500),
+                        curve: Curves.ease);
+                  },
+                ),
+              ),
+              Align(
+                  alignment: Alignment.bottomRight,
+                  child: FloatingActionButton(
+                    backgroundColor: Gs().secondaryColor,
+                    child: Icon(Icons.arrow_right_rounded,
+                        color: Gs().primaryColor, size: 50),
+                    onPressed: () {
+                      Navigator.pushNamed(context, 'newPost', arguments: {
+                        'image': _selectedImage,
+                      });
+                    },
+                  )),
+            ],
           ),
           backgroundColor: Gs().primaryColor,
           appBar: AppBar(
@@ -191,6 +226,7 @@ class _ImageSelectionState extends State<ImageSelection> {
             ),
           ),
           body: CustomScrollView(
+            controller: _scrollController,
             slivers: _images != null
                 ? [
                     SliverAppBar(
@@ -238,7 +274,9 @@ class _ImageSelectionState extends State<ImageSelection> {
                             return Container();
                           }
                           WidgetsBinding.instance.addPostFrameCallback((_) {
-                            loadAssets(assetName: _selectedAlbum);
+                            loadAssets(
+                                assetName: _selectedAlbum,
+                                assetID: _selectedAlbumID);
                           });
                           return Loading();
                         }

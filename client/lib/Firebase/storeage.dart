@@ -1,11 +1,11 @@
+import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:path/path.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
 
-Future<List<String>> uploadImage(imageFiles) async {
+Future<List<String>> uploadImages(List<File> imageFiles) async {
   var images = imageFiles.map((image) async {
     String fileName = basename(image.path);
     FirebaseStorage storage = FirebaseStorage.instance;
@@ -15,6 +15,7 @@ Future<List<String>> uploadImage(imageFiles) async {
     await ref.putFile(image);
 
     var link = await ref.getDownloadURL();
+
     return link;
   });
 

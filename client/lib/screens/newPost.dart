@@ -34,7 +34,7 @@ class _NewPostState extends State<NewPost> {
       setState(() {
         _loading = true;
       });
-      var images = await uploadImage(_image);
+      var images = await uploadImages(_image);
 
       Map<String, dynamic> variables = {
         "images": images,
@@ -47,6 +47,8 @@ class _NewPostState extends State<NewPost> {
       }
       return res.data;
     } catch (error) {
+      print(error);
+
       setState(() {
         _error = error.toString();
         _loading = false;
