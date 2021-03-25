@@ -1,7 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_101/Firebase/auth.dart';
-import 'package:provider/provider.dart';
 import '../GStyle.dart';
 
 class Login extends StatefulWidget {
@@ -89,74 +87,77 @@ class _LoginState extends State<Login> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      floatingActionButton: TextButton(
-        child: Text("Sign up",
-            style: TextStyle(color: Gs().secondaryColor, fontSize: 25)),
-        onPressed: () {
-          Navigator.pushNamed(context, 'signUp');
-        },
-      ),
-      backgroundColor: Gs().primaryColor,
-      body: Container(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                child: Text(
-                  _errors['other'] ?? '',
-                  style: TextStyle(color: Colors.red),
-                ),
-                margin: EdgeInsets.only(bottom: 15),
-              ),
-              TextField(
-                decoration: InputDecoration(
-                  focusedBorder: border,
-                  border: border,
-                  filled: true,
-                  errorText: _errors['email'] ?? null,
-                  labelText: "Email",
-                  alignLabelWithHint: true,
-                  fillColor: Colors.white,
-                ),
-                controller: email,
-              ),
-              Container(
-                  margin: EdgeInsets.symmetric(vertical: 10),
-                  child: TextField(
+    return AbsorbPointer(
+        absorbing: _loading,
+        child: Scaffold(
+          floatingActionButton: TextButton(
+            child: Text("Sign up",
+                style: TextStyle(color: Gs().secondaryColor, fontSize: 25)),
+            onPressed: () {
+              Navigator.pushNamed(context, 'signUp');
+            },
+          ),
+          backgroundColor: Gs().primaryColor,
+          body: Container(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    child: Text(
+                      _errors['other'] ?? '',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    margin: EdgeInsets.only(bottom: 15),
+                  ),
+                  TextField(
                     decoration: InputDecoration(
-                        focusedBorder: border,
-                        border: border,
-                        filled: true,
-                        errorText: _errors['password'] ?? null,
-                        alignLabelWithHint: true,
-                        fillColor: Colors.white,
-                        labelText: 'Password'),
-                    controller: password,
-                    obscureText: true,
-                  )),
-              _loading
-                  ? Container(
+                      focusedBorder: border,
+                      border: border,
+                      filled: true,
+                      errorText: _errors['email'] ?? null,
+                      labelText: "Email",
+                      alignLabelWithHint: true,
+                      fillColor: Colors.white,
+                    ),
+                    controller: email,
+                  ),
+                  Container(
                       margin: EdgeInsets.symmetric(vertical: 10),
-                      child: CircularProgressIndicator(
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Gs().secondaryColor),
-                      ),
-                    )
-                  : TextButton(
-                      style: ButtonStyle(
-                          backgroundColor:
-                              MaterialStateProperty.all(Gs().secondaryColor)),
-                      onPressed: () => onLoginIn(),
-                      child: Container(
-                          width: 100,
-                          child: Center(
-                              child: Text("Login",
-                                  style: TextStyle(color: Gs().textColor)))))
-            ],
-          )),
-    );
+                      child: TextField(
+                        decoration: InputDecoration(
+                            focusedBorder: border,
+                            border: border,
+                            filled: true,
+                            errorText: _errors['password'] ?? null,
+                            alignLabelWithHint: true,
+                            fillColor: Colors.white,
+                            labelText: 'Password'),
+                        controller: password,
+                        obscureText: true,
+                      )),
+                  _loading
+                      ? Container(
+                          margin: EdgeInsets.symmetric(vertical: 10),
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Gs().secondaryColor),
+                          ),
+                        )
+                      : TextButton(
+                          style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all(
+                                  Gs().secondaryColor)),
+                          onPressed: () => onLoginIn(),
+                          child: Container(
+                              width: 100,
+                              child: Center(
+                                  child: Text("Login",
+                                      style:
+                                          TextStyle(color: Gs().textColor)))))
+                ],
+              )),
+        ));
   }
 }

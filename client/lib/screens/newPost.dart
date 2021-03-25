@@ -63,17 +63,19 @@ class _NewPostState extends State<NewPost> {
 
     return GraphQLConsumer(builder: (client) {
       return Scaffold(
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: Gs().secondaryColor,
-            child:
-                Icon(Icons.upload_rounded, color: Gs().primaryColor, size: 30),
-            onPressed: () {
-              makePost(client).then((res) {
-                Navigator.pushNamedAndRemoveUntil(
-                    context, 'home', (route) => false);
-              });
-            },
-          ),
+          floatingActionButton: AbsorbPointer(
+              absorbing: _loading,
+              child: FloatingActionButton(
+                backgroundColor: Gs().secondaryColor,
+                child: Icon(Icons.upload_rounded,
+                    color: Gs().primaryColor, size: 30),
+                onPressed: () {
+                  makePost(client).then((res) {
+                    Navigator.pushNamedAndRemoveUntil(
+                        context, 'home', (route) => false);
+                  });
+                },
+              )),
           backgroundColor: Gs().primaryColor,
           appBar: AppBar(
             elevation: 0,

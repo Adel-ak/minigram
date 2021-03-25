@@ -41,6 +41,7 @@ class _SignUpState extends State<SignUp> {
   }
 
   void onSignUp(client) async {
+    FocusScope.of(context).unfocus();
     setState(() {
       _errors = {};
       _loading = true;
@@ -126,111 +127,113 @@ class _SignUpState extends State<SignUp> {
       backgroundColor: Gs().primaryColor,
       body: GraphQLConsumer(
         builder: (client) {
-          return Container(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextButton(
-                      onPressed: () async {
-                        loadAssets();
-                      },
-                      child: Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(2000)),
-                            margin: EdgeInsets.only(
-                                top: MediaQuery.of(context).padding.top),
-                            child: _image == null
-                                ? Icon(
-                                    Icons.account_circle_rounded,
-                                    size: 220,
-                                    color: Colors.grey,
-                                  )
-                                : AssetThumb(
-                                    asset: _image, height: 200, width: 200),
-                          ),
-                          Positioned(
-                            child: Icon(
-                              Icons.add_a_photo,
-                              color: Gs().secondaryColor,
-                              size: 40,
-                            ),
-                            bottom: 10,
-                            right: 10,
-                          )
-                        ],
-                      )),
-                  Container(
-                    child: Text(
-                      _errors['other'] ?? '',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                    margin: EdgeInsets.only(bottom: 15),
-                  ),
-                  TextField(
-                    decoration: InputDecoration(
-                      focusedBorder: border,
-                      border: border,
-                      filled: true,
-                      errorText: _errors['userName'] ?? null,
-                      labelText: "User name",
-                      alignLabelWithHint: true,
-                      fillColor: Colors.white,
-                    ),
-                    controller: userName,
-                  ),
-                  Container(
-                      margin: EdgeInsets.symmetric(vertical: 10),
-                      child: TextField(
+          return AbsorbPointer(
+              absorbing: _loading,
+              child: Container(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                          onPressed: () async {
+                            loadAssets();
+                          },
+                          child: Stack(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(2000)),
+                                margin: EdgeInsets.only(
+                                    top: MediaQuery.of(context).padding.top),
+                                child: _image == null
+                                    ? Icon(
+                                        Icons.account_circle_rounded,
+                                        size: 220,
+                                        color: Colors.grey,
+                                      )
+                                    : AssetThumb(
+                                        asset: _image, height: 200, width: 200),
+                              ),
+                              Positioned(
+                                child: Icon(
+                                  Icons.add_a_photo,
+                                  color: Gs().secondaryColor,
+                                  size: 40,
+                                ),
+                                bottom: 10,
+                                right: 10,
+                              )
+                            ],
+                          )),
+                      Container(
+                        child: Text(
+                          _errors['other'] ?? '',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        margin: EdgeInsets.only(bottom: 15),
+                      ),
+                      TextField(
                         decoration: InputDecoration(
                           focusedBorder: border,
                           border: border,
                           filled: true,
-                          errorText: _errors['email'] ?? null,
-                          labelText: "Email",
+                          errorText: _errors['userName'] ?? null,
+                          labelText: "User name",
                           alignLabelWithHint: true,
                           fillColor: Colors.white,
                         ),
-                        controller: email,
-                      )),
-                  Container(
-                      margin: EdgeInsets.symmetric(vertical: 10),
-                      child: TextField(
-                        decoration: InputDecoration(
-                            focusedBorder: border,
-                            border: border,
-                            filled: true,
-                            errorText: _errors['password'] ?? null,
-                            alignLabelWithHint: true,
-                            fillColor: Colors.white,
-                            labelText: 'Password'),
-                        controller: password,
-                        obscureText: true,
-                      )),
-                  _loading
-                      ? Container(
+                        controller: userName,
+                      ),
+                      Container(
                           margin: EdgeInsets.symmetric(vertical: 10),
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                Gs().secondaryColor),
-                          ),
-                        )
-                      : TextButton(
-                          style: ButtonStyle(
-                              backgroundColor: MaterialStateProperty.all(
-                                  Gs().secondaryColor)),
-                          onPressed: () => onSignUp(client),
-                          child: Container(
-                              width: 100,
-                              child: Center(
-                                  child: Text("Sign up",
-                                      style:
-                                          TextStyle(color: Gs().textColor)))))
-                ],
-              ));
+                          child: TextField(
+                            decoration: InputDecoration(
+                              focusedBorder: border,
+                              border: border,
+                              filled: true,
+                              errorText: _errors['email'] ?? null,
+                              labelText: "Email",
+                              alignLabelWithHint: true,
+                              fillColor: Colors.white,
+                            ),
+                            controller: email,
+                          )),
+                      Container(
+                          margin: EdgeInsets.symmetric(vertical: 10),
+                          child: TextField(
+                            decoration: InputDecoration(
+                                focusedBorder: border,
+                                border: border,
+                                filled: true,
+                                errorText: _errors['password'] ?? null,
+                                alignLabelWithHint: true,
+                                fillColor: Colors.white,
+                                labelText: 'Password'),
+                            controller: password,
+                            obscureText: true,
+                          )),
+                      _loading
+                          ? Container(
+                              margin: EdgeInsets.symmetric(vertical: 10),
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Gs().secondaryColor),
+                              ),
+                            )
+                          : TextButton(
+                              style: ButtonStyle(
+                                  backgroundColor: MaterialStateProperty.all(
+                                      Gs().secondaryColor)),
+                              onPressed: () => onSignUp(client),
+                              child: Container(
+                                  width: 100,
+                                  child: Center(
+                                      child: Text("Sign up",
+                                          style: TextStyle(
+                                              color: Gs().textColor)))))
+                    ],
+                  )));
         },
       ),
     );
