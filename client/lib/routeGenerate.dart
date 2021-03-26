@@ -41,7 +41,7 @@ class RouteGenerate {
         var arguments = setting.arguments as Map;
 
         return MaterialPageRoute(
-            builder: (_) => NewPost(image: arguments['image']));
+            builder: (_) => NewPost(file: arguments['file']));
       default:
     }
   }

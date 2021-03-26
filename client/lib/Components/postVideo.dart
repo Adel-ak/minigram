@@ -9,9 +9,13 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:image_downloader/image_downloader.dart';
 import 'package:provider/provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:visibility_detector/visibility_detector.dart';
+import 'package:chewie/chewie.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:video_player/video_player.dart';
 import '../GStyle.dart';
 
-class PostCard extends StatefulWidget {
+class PostCardVideo extends StatefulWidget {
   final List<dynamic> images;
   final String caption;
   final String userName;
@@ -22,7 +26,7 @@ class PostCard extends StatefulWidget {
   final Function removeItemFromPosts;
   int index;
 
-  PostCard({
+  PostCardVideo({
     Key key,
     this.images,
     this.caption,
@@ -35,10 +39,10 @@ class PostCard extends StatefulWidget {
     this.index,
   }) : super(key: key);
 
-  _PostCard createState() => _PostCard();
+  _PostCardVideoState createState() => _PostCardVideoState();
 }
 
-class _PostCard extends State<PostCard> {
+class _PostCardVideoState extends State<PostCardVideo> {
   bool _loading = false;
 
   showOptionSheet(context) {
@@ -332,7 +336,7 @@ class _MyCarouselSliderState extends State<MyCarouselSlider> {
                 itemBuilder: (_, index, __) =>
                     buildImage(widget.images[index]['uri']),
               )
-            : buildImage(widget.images[0]['uri']),
+            : VideoPlayerThumbNail(uri: widget.images[0]['uri']),
         // false
         //     ? Container(
         //         // color: Colors.white70,
@@ -349,6 +353,131 @@ class _MyCarouselSliderState extends State<MyCarouselSlider> {
         //     : Container(),
       ],
     );
+  }
+}
+
+class VideoPlayerThumbNail extends StatefulWidget {
+  // ignore: use_key_in_widget_constructors
+  const VideoPlayerThumbNail({Key key, this.uri}) : super(key: key);
+
+  final String uri;
+
+  @override
+  State<StatefulWidget> createState() {
+    return _VideoPlayerThumbNailState();
+  }
+}
+
+class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
+  ChewieController _chewieController;
+  VideoPlayerController _videoPlayerController;
+  Chewie _playerWidget;
+  Function controler;
+  bool isPlaying;
+
+  @override
+  void initState() {
+    if (widget.uri != null) {
+      initializePlayer();
+    }
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _videoPlayerController.dispose();
+
+    _chewieController.dispose();
+    super.dispose();
+  }
+
+  Future<void> initializePlayer() async {
+    VideoPlayerController videoPlayerController =
+        VideoPlayerController.network(widget.uri);
+
+    await videoPlayerController.initialize();
+    final chewieController = ChewieController(
+        videoPlayerController: videoPlayerController,
+        autoPlay: false,
+        looping: true,
+        showControls: false,
+        errorBuilder: (_, string) {
+          return Container(
+              child: Center(
+            child: Icon(Icons.error),
+          ));
+        });
+
+    chewieController.setVolume(10.0);
+    Chewie playerWidget = Chewie(
+      controller: chewieController,
+    );
+
+    setState(() {
+      _playerWidget = playerWidget;
+      _videoPlayerController = videoPlayerController;
+      _chewieController = chewieController;
+      isPlaying = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_chewieController != null &&
+        _chewieController.videoPlayerController.value.isInitialized) {
+      return VisibilityDetector(
+        key: UniqueKey(),
+        onVisibilityChanged: (visibilityInfo) {
+          var visiblePercentage = visibilityInfo.visibleFraction * 100;
+          if (visiblePercentage > 80 && !_chewieController.isPlaying) {
+            _chewieController.play();
+          } else if (visiblePercentage < 80 && _chewieController.isPlaying) {
+            _chewieController.pause();
+          }
+        },
+        child: Container(
+          height: 400,
+          child: Stack(
+            children: [
+              _playerWidget,
+              Positioned(
+                  bottom: 0,
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(child: InkWell(
+                    onTap: () {
+                      if (_chewieController.isPlaying) {
+                        _chewieController.pause();
+                      } else {
+                        _chewieController.play();
+                      }
+                    },
+                  ))),
+              // Positioned(
+              //     bottom: 5,
+              //     left: 5,
+              //     child: Container(
+              //       padding: EdgeInsets.all(5),
+              //       decoration: BoxDecoration(
+              //           color: Gs().primaryColor,
+              //           borderRadius: BorderRadius.all(Radius.circular(100))),
+              //       child: _chewieController.isPlaying
+              //           ? Icon(
+              //               Icons.play_arrow_rounded,
+              //               color: Gs().secondaryColor,
+              //             )
+              //           : Icon(
+              //               Icons.pause_rounded,
+              //               color: Gs().secondaryColor,
+              //             ),
+              //     ))
+            ],
+          ),
+        ),
+      );
+    }
+    return Loading();
   }
 }
 

@@ -10,7 +10,7 @@ Future<GraphQLClient> gqlClient() async {
   final _httpLink = HttpLink(
     kReleaseMode ? env["PROD_ENDPOINT"] : env["LOCAL_ENDPOINT"],
   );
-  print(kReleaseMode);
+
   final _authLink = AuthLink(
     getToken: () async {
       try {

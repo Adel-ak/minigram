@@ -1,14 +1,24 @@
 
+input NewPostFile {
+  type: String,
+  uri: String,
+}
+
 input NewPost {
-  images: [String],
+  files: [NewPostFile],
   caption: String,
+}
+
+type PostFile {
+  type: String,
+  uri: String,
 }
 
 type Post {
   _id: ID,
   user: User
   uid: ID,
-  images: [String],
+  files: [PostFile],
   caption: String,
   likes: Int,
   comments: [String],

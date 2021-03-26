@@ -4,16 +4,7 @@ Future<QueryResult> createPost(
     {GraphQLClient client, Map<String, dynamic> variables}) async {
   String document = """
       mutation CreatePost(\$form: NewPost){
-        createPost(form: \$form) {
-          _id
-          user {
-            uid
-          }
-          images
-          caption
-          likes
-          comments
-        }
+        createPost(form: \$form)
       }
     """;
 

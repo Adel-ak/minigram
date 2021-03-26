@@ -78,7 +78,7 @@ class _ProfileState extends State<Profile> {
     }
   }
 
-  _showBottomSheet(context, List images, userUid, postId, callBack) {
+  _showBottomSheet(context, String image, userUid, postId, callBack) {
     showModalBottomSheet(
         backgroundColor: Colors.transparent,
 
@@ -111,7 +111,7 @@ class _ProfileState extends State<Profile> {
                           color: Colors.black,
                           child: CachedNetworkImage(
                             fit: BoxFit.contain,
-                            imageUrl: images[0],
+                            imageUrl: image,
                             progressIndicatorBuilder:
                                 (context, url, downloadProgress) => Center(
                               child: CircularProgressIndicator(
@@ -133,7 +133,7 @@ class _ProfileState extends State<Profile> {
                         ),
                         onPressed: () {
                           Navigator.pop(context);
-                          downloadImage(images[0]);
+                          downloadImage(image);
                         },
                       )),
                   currentUser != null && currentUser.uid == userUid
@@ -202,7 +202,10 @@ class _ProfileState extends State<Profile> {
         getUserPosts(uid:\$uid, startAt: \$startAt) {
             posts {
             createdDate
-            images
+            files {
+              type
+              uri
+            }
             uid
             _id
             user {
@@ -291,11 +294,12 @@ class _ProfileState extends State<Profile> {
                                           !_removing.containsKey(
                                                   data[index]['_id'])
                                               ? InkWell(
-                                                  child: buildImage(
-                                                      data[index]['images'][0]),
+                                                  child: buildImage(data[index]
+                                                      ['files'][0]['uri']),
                                                   onTap: () => _showBottomSheet(
                                                       context,
-                                                      data[index]['images'],
+                                                      data[index]['files'][0]
+                                                          ['uri'],
                                                       data[index]['uid'],
                                                       data[index]['_id'],
                                                       () async {

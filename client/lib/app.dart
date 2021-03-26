@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_101/Components/internetConnectivity.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -45,7 +46,8 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
+    return InternetConnectivity(
+        child: MultiProvider(
       providers: [
         Provider<GraphQLClient>(
           create: (_) => client,
@@ -100,6 +102,6 @@ class MyApp extends StatelessWidget {
             );
           }),
       builder: (_, child) => child,
-    );
+    ));
   }
 }

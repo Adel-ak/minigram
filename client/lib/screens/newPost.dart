@@ -3,20 +3,23 @@ import 'package:flutter_101/Firebase/storeage.dart';
 import 'package:flutter_101/gql/post.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_101/screens/imageSelection.dart';
 import 'package:graphql/client.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:photo_manager/photo_manager.dart';
 import '../GStyle.dart';
 
 class NewPost extends StatefulWidget {
-  File image;
-  NewPost({Key key, this.image}) : super(key: key);
+  Map file;
+  NewPost({Key key, this.file}) : super(key: key);
 
   @override
   _NewPostState createState() => _NewPostState();
 }
 
 class _NewPostState extends State<NewPost> {
-  List<File> _image;
+  List<Map> _files;
+  List _thumbNail;
   TextEditingController captionController = TextEditingController(text: "");
   String _error;
   bool _loading = false;
@@ -24,9 +27,19 @@ class _NewPostState extends State<NewPost> {
   @override
   initState() {
     setState(() {
-      _image = [widget.image];
+      _files = [widget.file];
     });
+    onVideo();
     super.initState();
+  }
+
+  onVideo() async {
+    if (widget.file['type'] == AssetType.video) {
+      List thumbData = await widget.file['asset'].thumbData;
+      setState(() {
+        _thumbNail = thumbData;
+      });
+    }
   }
 
   Future makePost(client) async {
@@ -34,10 +47,10 @@ class _NewPostState extends State<NewPost> {
       setState(() {
         _loading = true;
       });
-      var images = await uploadImages(_image);
+      var files = await uploadImages(_files);
 
       Map<String, dynamic> variables = {
-        "images": images,
+        "files": files,
         "caption": captionController.text,
       };
 
@@ -45,9 +58,9 @@ class _NewPostState extends State<NewPost> {
       if (res.hasException) {
         throw res.exception;
       }
-      return res.data;
+      return res.data['createPost'];
     } catch (error) {
-      print(error);
+      print('error -------- $error');
 
       setState(() {
         _error = error.toString();
@@ -71,8 +84,10 @@ class _NewPostState extends State<NewPost> {
                     color: Gs().primaryColor, size: 30),
                 onPressed: () {
                   makePost(client).then((res) {
-                    Navigator.pushNamedAndRemoveUntil(
-                        context, 'home', (route) => false);
+                    if (res) {
+                      Navigator.pushNamedAndRemoveUntil(
+                          context, 'home', (route) => false);
+                    }
                   });
                 },
               )),
@@ -80,16 +95,16 @@ class _NewPostState extends State<NewPost> {
           appBar: AppBar(
             elevation: 0,
             backgroundColor: Gs().secondaryColor,
-            leading: Row(children: [
-              IconButton(
-                icon: Icon(
-                  Icons.arrow_back_rounded,
-                  color: Gs().primaryColor,
-                ),
-                onPressed: () => Navigator.pop(context),
-                iconSize: 25,
-              ),
-            ]),
+            leading: AbsorbPointer(
+                absorbing: _loading,
+                child: IconButton(
+                  icon: Icon(
+                    Icons.arrow_back_rounded,
+                    color: Gs().primaryColor,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  iconSize: 25,
+                )),
             flexibleSpace: Container(
               alignment: Alignment.centerLeft,
               margin: EdgeInsets.only(
@@ -121,14 +136,27 @@ class _NewPostState extends State<NewPost> {
                               Align(
                                 alignment: Alignment.topLeft,
                                 child: Padding(
-                                  padding: EdgeInsets.only(left: 20, top: 20),
-                                  child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      child: Image.file(_image[0],
-                                          height: 200,
-                                          width: 200,
-                                          fit: BoxFit.cover)),
-                                ),
+                                    padding: EdgeInsets.only(left: 20, top: 20),
+                                    child: ClipRRect(
+                                        borderRadius:
+                                            BorderRadius.circular(8.0),
+                                        child:
+                                            _files[0]['type'] == AssetType.image
+                                                ? Image.file(_files[0]['path'],
+                                                    height: 200,
+                                                    width: 200,
+                                                    fit: BoxFit.cover)
+                                                : _thumbNail != null
+                                                    ? Container(
+                                                        color: Colors.red,
+                                                        height: 200,
+                                                        width: 200,
+                                                        child: VideoThumbNail(
+                                                          isSelected: false,
+                                                          onClick: () => null,
+                                                          thumbNail: _thumbNail,
+                                                        ))
+                                                    : Container())),
                               ),
                             ],
                           )),

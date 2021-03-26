@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_101/Components/post.dart';
+import 'package:flutter_101/Components/postVideo.dart';
 import 'package:flutter_101/Firebase/firestore.dart';
 import 'package:graphql/client.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
@@ -82,7 +83,10 @@ class _HomeState extends State<Home> {
           displayName
           avatar
         }
-        images
+        files {
+          type
+          uri
+        }
         caption
         createdDate
         }
@@ -209,11 +213,28 @@ class _HomeState extends State<Home> {
                           var post = _posts[index];
                           String caption = post['caption'];
                           String postId = post['_id'];
-                          List<dynamic> images = post['images'];
+                          List<dynamic> images = post['files'];
+                          String fileType = post['files'][0]['type'];
                           String createdDate = post['createdDate'];
                           String userAvatar = post['user']['avatar'];
                           String userName = post['user']['displayName'];
                           String userUid = post['user']['uid'];
+                          print(fileType);
+                          if (fileType == 'video') {
+                            print(images[0]);
+                            return PostCardVideo(
+                              key: ObjectKey('$index-$userUid'),
+                              postId: postId,
+                              images: images,
+                              caption: caption,
+                              userName: userName,
+                              userUid: userUid,
+                              userAvatar: userAvatar,
+                              createdDate: createdDate,
+                              removeItemFromPosts: removeItemFromPosts,
+                              index: index,
+                            );
+                          }
 
                           return PostCard(
                             key: ObjectKey('$index-$userUid'),

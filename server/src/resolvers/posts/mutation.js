@@ -2,7 +2,7 @@ const { catchAsync, admin } = require("../../utils");
 const shortid = require('shortid');
 const moment = require('moment');
 
-exports.createPost = catchAsync(async (_, args, { user }) => {
+exports.createPost = catchAsync(async (_, args, { user }) => {     
     const doc = await admin.firestore().collection('posts').add({
         _id: shortid(),
         uid: user.uid,
@@ -12,7 +12,7 @@ exports.createPost = catchAsync(async (_, args, { user }) => {
 
     const data = (await doc.get()).data();
 
-    return data
+    return true
 });
 
 exports.deletePost = catchAsync(async (_, { docId }, { user }) => {

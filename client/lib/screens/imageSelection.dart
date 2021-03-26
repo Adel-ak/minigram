@@ -1,14 +1,11 @@
 import 'dart:io';
 import 'dart:math';
-import 'package:chewie/chewie.dart';
 import 'package:flutter_101/Components/videoPlayer.dart';
 import 'package:interpolate/interpolate.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:thumbnails/thumbnails.dart' as TN;
-import 'package:video_player/video_player.dart';
 import '../GStyle.dart';
 
 class ImageSelection extends StatefulWidget {
@@ -28,7 +25,7 @@ class _ImageSelectionState extends State<ImageSelection> {
 
   int _page = 0;
   bool _hasMore = true;
-  ScrollController _scrollController = new ScrollController();
+  ScrollController _scrollController = ScrollController();
   @override
   initState() {
     loadAssets(assetName: _selectedAlbum);
@@ -64,20 +61,17 @@ class _ImageSelectionState extends State<ImageSelection> {
         List<AssetEntity> assets = await selectedAblum['list'](pageNum, 25);
 
         List<Map> assetsList = await Future.wait(assets.map((asset) async {
-          String thumbNail;
-          File file = await asset.file;
-          if (asset.type == AssetType.video) {
-            try {
-              thumbNail = await TN.Thumbnails.getThumbnail(
-                  videoFile: file.path,
-                  imageType: TN.ThumbFormat.JPEG,
-                  quality: 60);
-            } catch (error) {
-              print(error);
-            }
-          }
+          Future<List> thumbData = asset.thumbData;
 
-          return {'path': file, 'type': asset.type, 'thumbNail': thumbNail};
+          Future<File> file = asset.file;
+          var files = await Future.wait([file, thumbData]);
+
+          return {
+            'path': files[0],
+            'type': asset.type,
+            'thumbNail': files[1],
+            'asset': asset
+          };
         }));
 
         setState(() {
@@ -109,8 +103,6 @@ class _ImageSelectionState extends State<ImageSelection> {
         // success
       } else {
         PhotoManager.openSetting();
-        // fail
-        /// if result is fail, you can call `PhotoManager.openSetting();`  to open android/ios applicaton's setting to get permission
       }
     } catch (error) {
       setState(() {
@@ -151,19 +143,6 @@ class _ImageSelectionState extends State<ImageSelection> {
         });
   }
 
-  Widget buildGridView() {
-    if (_images != null)
-      return GridView.count(
-        crossAxisCount: 3,
-        children: List.generate(_images.length, (index) {
-          File asset = _images[index];
-          return Image.file(asset);
-        }),
-      );
-    else
-      return Container();
-  }
-
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -176,7 +155,7 @@ class _ImageSelectionState extends State<ImageSelection> {
                 animation: _scrollController,
                 builder: (context, child) {
                   Interpolate interpolateRightUserName = Interpolate(
-                    inputRange: [300, 500],
+                    inputRange: [300, 310],
                     outputRange: [-60, 0],
                     extrapolate: Extrapolate.clamp,
                   );
@@ -205,7 +184,7 @@ class _ImageSelectionState extends State<ImageSelection> {
                         color: Gs().primaryColor, size: 50),
                     onPressed: () {
                       Navigator.pushNamed(context, 'newPost', arguments: {
-                        'image': _selectedImage,
+                        'file': _selectedImage,
                       });
                     },
                   )),
@@ -292,8 +271,12 @@ class _ImageSelectionState extends State<ImageSelection> {
 
                         if (assetType == AssetType.video) {
                           var asset = _images[index];
+                          var isSelected =
+                              asset['path'] == _selectedImage['path'];
+
                           return VideoThumbNail(
-                              thumbNail: File(asset['thumbNail']),
+                              thumbNail: asset['thumbNail'],
+                              isSelected: isSelected,
                               onClick: () {
                                 setState(() {
                                   _selectedImage = asset;
@@ -302,18 +285,24 @@ class _ImageSelectionState extends State<ImageSelection> {
                         }
 
                         if (assetType == AssetType.image) {
-                          File asset = _images[index]['path'];
+                          var asset = _images[index];
 
-                          var isSelected = asset == _selectedImage['path'];
+                          var isSelected =
+                              asset['path'] == _selectedImage['path'];
                           return ImageThumbNail(
                               isSelected: isSelected,
-                              thumbNail: asset,
+                              thumbNail: asset['path'],
                               onClick: () {
                                 setState(() {
-                                  _selectedImage = _images[index];
+                                  _selectedImage = asset;
                                 });
                               });
                         }
+
+                        return Container(
+                            child: Center(
+                          child: Icon(Icons.error),
+                        ));
                       }, childCount: _images.length + 1),
                       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: screenWidth / 3,
@@ -394,7 +383,6 @@ class SelectedThumbNail extends StatelessWidget {
   SelectedThumbNail({this.selectedImage, this.scrollController});
 
   Widget build(context) {
-    print(selectedImage);
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeigth = MediaQuery.of(context).size.height;
     // return Container();
@@ -426,13 +414,26 @@ class SelectedThumbNail extends StatelessWidget {
   }
 }
 
+// class VideoThumbNail extends StatefulWidget {
+//   final Map thumbNail;
+//   final Function onClick;
+//   final bool isSelected;
+
+//   VideoThumbNail(
+//       {Key key, this.thumbNail, this.onClick, this.isSelected = false})
+//       : super(key: key);
+//   _VideoThumbNailState createState() => _VideoThumbNailState();
+// }
+
 class VideoThumbNail extends StatelessWidget {
-  final File thumbNail;
+  final List thumbNail;
   final Function onClick;
   final bool isSelected;
 
-  VideoThumbNail({this.thumbNail, this.onClick, this.isSelected = false});
-
+  VideoThumbNail(
+      {Key key, this.thumbNail, this.onClick, this.isSelected = false})
+      : super(key: key);
+  @override
   @override
   Widget build(context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -445,44 +446,47 @@ class VideoThumbNail extends StatelessWidget {
       ));
     }
 
-    return InkWell(
-        child: Stack(
-          children: [
-            Positioned(
-                top: 0,
-                right: 0,
-                bottom: 0,
-                left: 0,
-                child: Image.file(
-                  thumbNail,
-                  fit: BoxFit.cover,
-                  cacheWidth: screenWidth ~/ 2,
-                )),
-            Positioned(
-                top: 0,
-                right: 0,
-                bottom: 0,
-                left: 0,
-                child: Container(color: isSelected ? Colors.black54 : null)),
-            Positioned(
-                top: 5,
-                right: 15,
-                child: isSelected
-                    ? Icon(Icons.done_rounded, color: Gs().secondaryColor)
-                    : Container()),
-            Positioned(
-                bottom: 5,
-                left: 5,
-                child: Container(
-                  padding: EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                      color: Gs().primaryColor,
-                      borderRadius: BorderRadius.all(Radius.circular(100))),
-                  child: Icon(Icons.play_arrow_rounded,
-                      color: Gs().secondaryColor),
-                ))
-          ],
-        ),
-        onTap: onClick);
+    if (thumbNail != null) {
+      return InkWell(
+          child: Stack(
+            children: [
+              Positioned(
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  left: 0,
+                  child: Image.memory(
+                    thumbNail,
+                    fit: BoxFit.cover,
+                    cacheWidth: screenWidth ~/ 2,
+                  )),
+              Positioned(
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  left: 0,
+                  child: Container(color: isSelected ? Colors.black54 : null)),
+              Positioned(
+                  top: 5,
+                  right: 15,
+                  child: isSelected
+                      ? Icon(Icons.done_rounded, color: Gs().secondaryColor)
+                      : Container()),
+              Positioned(
+                  bottom: 5,
+                  left: 5,
+                  child: Container(
+                    padding: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        color: Gs().primaryColor,
+                        borderRadius: BorderRadius.all(Radius.circular(100))),
+                    child: Icon(Icons.play_arrow_rounded,
+                        color: Gs().secondaryColor),
+                  ))
+            ],
+          ),
+          onTap: onClick);
+    }
+    return Loading();
   }
 }

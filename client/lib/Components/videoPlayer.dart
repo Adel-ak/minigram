@@ -23,6 +23,7 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
   ChewieController _chewieController;
   VideoPlayerController _videoPlayerController;
   Chewie _playerWidget;
+  Function controler;
 
   @override
   void initState() {
@@ -47,11 +48,10 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
     await videoPlayerController.initialize();
     final chewieController = ChewieController(
         videoPlayerController: videoPlayerController,
-        autoPlay: true,
+        autoPlay: false,
         looping: true,
         showControls: false,
         errorBuilder: (_, string) {
-          print(string);
           return Container(
               child: Center(
             child: Icon(Icons.error),
@@ -76,22 +76,17 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
         _chewieController.videoPlayerController.value.isInitialized) {
       return _playerWidget;
     }
-    return Loading(
-      height: null,
-    );
+    return Loading();
   }
 }
 
 class Loading extends StatelessWidget {
-  double height = 100;
-  Loading({this.height});
   Widget build(context) {
     return Container(
-        height: height,
         child: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Gs().secondaryColor),
-          ),
-        ));
+      child: CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation<Color>(Gs().secondaryColor),
+      ),
+    ));
   }
 }
