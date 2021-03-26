@@ -1,10 +1,14 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:chewie/chewie.dart';
+import 'package:flutter_101/Components/videoPlayer.dart';
 import 'package:interpolate/interpolate.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:thumbnails/thumbnails.dart' as TN;
+import 'package:video_player/video_player.dart';
 import '../GStyle.dart';
 
 class ImageSelection extends StatefulWidget {
@@ -19,7 +23,7 @@ class _ImageSelectionState extends State<ImageSelection> {
   List<Map> _albums;
   String _selectedAlbum = "Recent";
   String _selectedAlbumID;
-  File _selectedImage;
+  Map _selectedImage;
   String _error = "";
 
   int _page = 0;
@@ -37,12 +41,14 @@ class _ImageSelectionState extends State<ImageSelection> {
       var result = await PhotoManager.requestPermission();
       if (result) {
         List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
-            type: RequestType.image, hasAll: true);
+            type: RequestType.common, hasAll: true);
+
         Iterable<Map<dynamic, dynamic>> albumsNames = albums.map((album) => {
               'albumID': album.id,
               'name': album.name,
               'count': album.assetCount,
-              'list': album.getAssetListPaged
+              'list': album.getAssetListPaged,
+              'type': album.type
             });
 
         Map<dynamic, dynamic> selectedAblum = albumsNames.where((element) {
@@ -57,8 +63,22 @@ class _ImageSelectionState extends State<ImageSelection> {
 
         List<AssetEntity> assets = await selectedAblum['list'](pageNum, 25);
 
-        List<File> assetsList =
-            await Future.wait(assets.map((asset) async => await asset.file));
+        List<Map> assetsList = await Future.wait(assets.map((asset) async {
+          String thumbNail;
+          File file = await asset.file;
+          if (asset.type == AssetType.video) {
+            try {
+              thumbNail = await TN.Thumbnails.getThumbnail(
+                  videoFile: file.path,
+                  imageType: TN.ThumbFormat.JPEG,
+                  quality: 60);
+            } catch (error) {
+              print(error);
+            }
+          }
+
+          return {'path': file, 'type': asset.type, 'thumbNail': thumbNail};
+        }));
 
         setState(() {
           if (_albums == null) {
@@ -147,7 +167,6 @@ class _ImageSelectionState extends State<ImageSelection> {
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
-    double screenHeigth = MediaQuery.of(context).size.height;
 
     return GraphQLConsumer(builder: (client) {
       return Scaffold(
@@ -229,21 +248,9 @@ class _ImageSelectionState extends State<ImageSelection> {
             controller: _scrollController,
             slivers: _images != null
                 ? [
-                    SliverAppBar(
-                      elevation: 0,
-                      toolbarHeight: 0,
-                      expandedHeight: screenHeigth / 2.5,
-                      collapsedHeight: 0,
-                      automaticallyImplyLeading: false,
-                      backgroundColor: Gs().primaryColor,
-                      flexibleSpace: Builder(builder: (_) {
-                        return Image.file(
-                          _selectedImage,
-                          fit: BoxFit.contain,
-                          width: screenWidth / 1,
-                          height: screenHeigth / 2.5,
-                        );
-                      }),
+                    SelectedThumbNail(
+                      selectedImage: _selectedImage,
+                      scrollController: _scrollController,
                     ),
                     SliverAppBar(
                         backgroundColor: Gs().secondaryColor,
@@ -281,50 +288,32 @@ class _ImageSelectionState extends State<ImageSelection> {
                           return Loading();
                         }
 
-                        File asset = _images[index];
+                        AssetType assetType = _images[index]['type'];
 
-                        var isSelected = asset == _selectedImage;
-
-                        return InkWell(
-                            child: Stack(
-                              children: [
-                                Positioned(
-                                    top: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    left: 0,
-                                    child: Image.file(
-                                      asset,
-                                      key: ValueKey('${asset.path} + $index'),
-                                      fit: BoxFit.cover,
-                                      cacheWidth: screenWidth ~/ 3,
-                                      // cacheHeight: screenWidth ~/ 2,
-                                      // width: ((screenWidth ~/ 2) - 20) / 1,
-                                      // height: ((screenWidth ~/ 2) - 10) / 1,
-                                    )),
-                                Positioned(
-                                    top: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    left: 0,
-                                    child: Container(
-                                        color: isSelected
-                                            ? Colors.black54
-                                            : null)),
-                                Positioned(
-                                    top: 5,
-                                    right: 15,
-                                    child: isSelected
-                                        ? Icon(Icons.done_rounded,
-                                            color: Gs().secondaryColor)
-                                        : Container())
-                              ],
-                            ),
-                            onTap: () {
-                              setState(() {
-                                _selectedImage = asset;
+                        if (assetType == AssetType.video) {
+                          var asset = _images[index];
+                          return VideoThumbNail(
+                              thumbNail: File(asset['thumbNail']),
+                              onClick: () {
+                                setState(() {
+                                  _selectedImage = asset;
+                                });
                               });
-                            });
+                        }
+
+                        if (assetType == AssetType.image) {
+                          File asset = _images[index]['path'];
+
+                          var isSelected = asset == _selectedImage['path'];
+                          return ImageThumbNail(
+                              isSelected: isSelected,
+                              thumbNail: asset,
+                              onClick: () {
+                                setState(() {
+                                  _selectedImage = _images[index];
+                                });
+                              });
+                        }
                       }, childCount: _images.length + 1),
                       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: screenWidth / 3,
@@ -345,13 +334,155 @@ class _ImageSelectionState extends State<ImageSelection> {
 }
 
 class Loading extends StatelessWidget {
+  double height = 100;
+  Loading({this.height});
   Widget build(context) {
     return Container(
-        height: 100,
+        height: height,
         child: Center(
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(Gs().secondaryColor),
           ),
         ));
+  }
+}
+
+class ImageThumbNail extends StatelessWidget {
+  final File thumbNail;
+  final Function onClick;
+  final bool isSelected;
+
+  ImageThumbNail({this.thumbNail, this.onClick, this.isSelected});
+
+  Widget build(context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+
+    return InkWell(
+        child: Stack(
+          children: [
+            Positioned(
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+                child: Image.file(
+                  thumbNail,
+                  fit: BoxFit.cover,
+                  cacheWidth: screenWidth ~/ 2,
+                )),
+            Positioned(
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+                child: Container(color: isSelected ? Colors.black54 : null)),
+            Positioned(
+                top: 5,
+                right: 15,
+                child: isSelected
+                    ? Icon(Icons.done_rounded, color: Gs().secondaryColor)
+                    : Container())
+          ],
+        ),
+        onTap: onClick);
+  }
+}
+
+class SelectedThumbNail extends StatelessWidget {
+  Map<dynamic, dynamic> selectedImage;
+  ScrollController scrollController;
+  SelectedThumbNail({this.selectedImage, this.scrollController});
+
+  Widget build(context) {
+    print(selectedImage);
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeigth = MediaQuery.of(context).size.height;
+    // return Container();
+
+    return SliverAppBar(
+      elevation: 0,
+      toolbarHeight: 0,
+      expandedHeight: screenHeigth / 2.5,
+      collapsedHeight: 0,
+      automaticallyImplyLeading: false,
+      backgroundColor: Gs().primaryColor,
+      flexibleSpace: Builder(builder: (_) {
+        if (selectedImage['type'] == AssetType.image) {
+          return Image.file(
+            selectedImage['path'],
+            fit: BoxFit.contain,
+            width: screenWidth / 1,
+            height: screenHeigth / 2.5,
+          );
+        }
+        if (selectedImage['type'] == AssetType.video) {
+          return VideoPlayerThumbNail(
+            key: ValueKey(selectedImage['path']),
+            videoPath: selectedImage['path'],
+          );
+        }
+      }),
+    );
+  }
+}
+
+class VideoThumbNail extends StatelessWidget {
+  final File thumbNail;
+  final Function onClick;
+  final bool isSelected;
+
+  VideoThumbNail({this.thumbNail, this.onClick, this.isSelected = false});
+
+  @override
+  Widget build(context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+
+    if (thumbNail == null) {
+      return Container(
+          child: Icon(
+        Icons.error,
+        color: Colors.white,
+      ));
+    }
+
+    return InkWell(
+        child: Stack(
+          children: [
+            Positioned(
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+                child: Image.file(
+                  thumbNail,
+                  fit: BoxFit.cover,
+                  cacheWidth: screenWidth ~/ 2,
+                )),
+            Positioned(
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+                child: Container(color: isSelected ? Colors.black54 : null)),
+            Positioned(
+                top: 5,
+                right: 15,
+                child: isSelected
+                    ? Icon(Icons.done_rounded, color: Gs().secondaryColor)
+                    : Container()),
+            Positioned(
+                bottom: 5,
+                left: 5,
+                child: Container(
+                  padding: EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                      color: Gs().primaryColor,
+                      borderRadius: BorderRadius.all(Radius.circular(100))),
+                  child: Icon(Icons.play_arrow_rounded,
+                      color: Gs().secondaryColor),
+                ))
+          ],
+        ),
+        onTap: onClick);
   }
 }
