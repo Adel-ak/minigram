@@ -55,6 +55,7 @@ dependencies:
   connectivity: ^3.0.3
   visibility_detector: ^0.1.5
   video_compress: ^2.1.0
+  flutter_image_compress: ^1.0.0
 
 dev_dependencies:
   flutter_test:

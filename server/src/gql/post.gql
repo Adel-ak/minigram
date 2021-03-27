@@ -31,7 +31,7 @@ type UserPosts {
 }
 
 extend type Mutation {
-  createPost(form: NewPost): Post,
+  createPost(form: NewPost): Boolean,
   deletePost(docId: ID): Boolean,
 }
 

@@ -373,7 +373,7 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
   VideoPlayerController _videoPlayerController;
   Chewie _playerWidget;
   Function controler;
-  bool isPlaying;
+  bool _playSound = false;
 
   @override
   void initState() {
@@ -389,6 +389,17 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
 
     _chewieController.dispose();
     super.dispose();
+  }
+
+  playSound() {
+    if (!_playSound) {
+      _chewieController.setVolume(10.0);
+    } else {
+      _chewieController.setVolume(0.0);
+    }
+    setState(() {
+      _playSound = !_playSound;
+    });
   }
 
   Future<void> initializePlayer() async {
@@ -407,8 +418,8 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
             child: Icon(Icons.error),
           ));
         });
+    _chewieController.setVolume(0.0);
 
-    chewieController.setVolume(10.0);
     Chewie playerWidget = Chewie(
       controller: chewieController,
     );
@@ -417,7 +428,6 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
       _playerWidget = playerWidget;
       _videoPlayerController = videoPlayerController;
       _chewieController = chewieController;
-      isPlaying = true;
     });
   }
 
@@ -447,31 +457,27 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
                   right: 0,
                   child: Container(child: InkWell(
                     onTap: () {
-                      if (_chewieController.isPlaying) {
-                        _chewieController.pause();
-                      } else {
-                        _chewieController.play();
-                      }
+                      playSound();
                     },
                   ))),
-              // Positioned(
-              //     bottom: 5,
-              //     left: 5,
-              //     child: Container(
-              //       padding: EdgeInsets.all(5),
-              //       decoration: BoxDecoration(
-              //           color: Gs().primaryColor,
-              //           borderRadius: BorderRadius.all(Radius.circular(100))),
-              //       child: _chewieController.isPlaying
-              //           ? Icon(
-              //               Icons.play_arrow_rounded,
-              //               color: Gs().secondaryColor,
-              //             )
-              //           : Icon(
-              //               Icons.pause_rounded,
-              //               color: Gs().secondaryColor,
-              //             ),
-              //     ))
+              Positioned(
+                  bottom: 5,
+                  left: 10,
+                  child: Container(
+                    padding: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        color: Gs().primaryColor,
+                        borderRadius: BorderRadius.all(Radius.circular(100))),
+                    child: _playSound
+                        ? Icon(
+                            Icons.volume_up_rounded,
+                            color: Gs().secondaryColor,
+                          )
+                        : Icon(
+                            Icons.volume_off_rounded,
+                            color: Gs().secondaryColor,
+                          ),
+                  ))
             ],
           ),
         ),

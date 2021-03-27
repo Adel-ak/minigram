@@ -293,19 +293,33 @@ class _ProfileState extends State<Profile> {
                                       builder: (BuildContext context) =>
                                           !_removing.containsKey(
                                                   data[index]['_id'])
-                                              ? InkWell(
-                                                  child: buildImage(data[index]
-                                                      ['files'][0]['uri']),
-                                                  onTap: () => _showBottomSheet(
-                                                      context,
-                                                      data[index]['files'][0]
-                                                          ['uri'],
-                                                      data[index]['uid'],
-                                                      data[index]['_id'],
-                                                      () async {
-                                                    await refetch();
-                                                  }),
-                                                )
+                                              ? data[index]['files'][0]
+                                                          ['type'] ==
+                                                      'image'
+                                                  ? InkWell(
+                                                      child: buildImage(
+                                                          data[index]['files']
+                                                              [0]['uri']),
+                                                      onTap: () =>
+                                                          _showBottomSheet(
+                                                              context,
+                                                              data[index]
+                                                                      ['files']
+                                                                  [0]['uri'],
+                                                              data[index]
+                                                                  ['uid'],
+                                                              data[index]
+                                                                  ['_id'],
+                                                              () async {
+                                                        await refetch();
+                                                      }),
+                                                    )
+                                                  : Container(
+                                                      child: Icon(
+                                                          Icons.error_rounded,
+                                                          color: Colors.white,
+                                                          size: 20),
+                                                    )
                                               : Loading()));
                             }, childCount: data.length),
                             gridDelegate:
