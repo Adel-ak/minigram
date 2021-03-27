@@ -219,9 +219,8 @@ class _HomeState extends State<Home> {
                           String userAvatar = post['user']['avatar'];
                           String userName = post['user']['displayName'];
                           String userUid = post['user']['uid'];
-                          print(fileType);
+
                           if (fileType == 'video') {
-                            print(images[0]);
                             return PostCardVideo(
                               key: ObjectKey('$index-$userUid'),
                               postId: postId,

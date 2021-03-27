@@ -24,7 +24,7 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
   VideoPlayerController _videoPlayerController;
   Chewie _playerWidget;
   Function controler;
-
+  String _error;
   @override
   void initState() {
     if (widget.videoPath != null) {
@@ -35,45 +35,54 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
 
   @override
   void dispose() {
-    _videoPlayerController.dispose();
+    if (_videoPlayerController != null) _videoPlayerController.dispose();
 
-    _chewieController.dispose();
+    if (_chewieController != null) _chewieController.dispose();
     super.dispose();
   }
 
   Future<void> initializePlayer() async {
-    VideoPlayerController videoPlayerController =
-        VideoPlayerController.file(widget.videoPath);
+    try {
+      VideoPlayerController videoPlayerController =
+          VideoPlayerController.file(widget.videoPath);
+      await videoPlayerController.initialize();
+      final chewieController = ChewieController(
+          videoPlayerController: videoPlayerController,
+          autoPlay: false,
+          looping: true,
+          showControls: false,
+          errorBuilder: (_, string) {
+            return Container(
+                child: Center(
+              child: Icon(Icons.error),
+            ));
+          });
 
-    await videoPlayerController.initialize();
-    final chewieController = ChewieController(
-        videoPlayerController: videoPlayerController,
-        autoPlay: false,
-        looping: true,
-        showControls: false,
-        errorBuilder: (_, string) {
-          return Container(
-              child: Center(
-            child: Icon(Icons.error),
-          ));
-        });
+      // chewieController.setVolume(10.0);
+      Chewie playerWidget = Chewie(
+        controller: chewieController,
+      );
 
-    // chewieController.setVolume(10.0);
-    Chewie playerWidget = Chewie(
-      controller: chewieController,
-    );
-
-    setState(() {
-      _playerWidget = playerWidget;
-      _videoPlayerController = videoPlayerController;
-      _chewieController = chewieController;
-    });
+      setState(() {
+        _playerWidget = playerWidget;
+        _videoPlayerController = videoPlayerController;
+        _chewieController = chewieController;
+      });
+    } catch (error) {
+      setState(() {
+        _error = error.toString();
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_error != null) {
+      return Container(
+          child: Center(child: Icon(Icons.error, color: Colors.white)));
+    }
     if (_chewieController != null &&
-        _chewieController.videoPlayerController.value.isInitialized) {
+        _chewieController.videoPlayerController.value.initialized) {
       return _playerWidget;
     }
     return Loading();

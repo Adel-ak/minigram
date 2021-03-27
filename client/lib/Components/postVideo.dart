@@ -374,7 +374,7 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
   Chewie _playerWidget;
   Function controler;
   bool _playSound = false;
-
+  String _error;
   @override
   void initState() {
     if (widget.uri != null) {
@@ -391,11 +391,11 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
     super.dispose();
   }
 
-  playSound() {
+  playSound() async {
     if (!_playSound) {
-      _chewieController.setVolume(10.0);
+      await _chewieController.setVolume(10.0);
     } else {
-      _chewieController.setVolume(0.0);
+      await _chewieController.setVolume(0.0);
     }
     setState(() {
       _playSound = !_playSound;
@@ -403,38 +403,48 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
   }
 
   Future<void> initializePlayer() async {
-    VideoPlayerController videoPlayerController =
-        VideoPlayerController.network(widget.uri);
+    try {
+      VideoPlayerController videoPlayerController =
+          VideoPlayerController.network(widget.uri,
+              useCache: true,
+              videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true));
+      await videoPlayerController.initialize();
 
-    await videoPlayerController.initialize();
-    final chewieController = ChewieController(
-        videoPlayerController: videoPlayerController,
-        autoPlay: false,
-        looping: true,
-        showControls: false,
-        errorBuilder: (_, string) {
-          return Container(
-              child: Center(
-            child: Icon(Icons.error),
-          ));
-        });
-    _chewieController.setVolume(0.0);
+      await videoPlayerController.setVolume(0);
+      final chewieController = ChewieController(
+          videoPlayerController: videoPlayerController,
+          autoPlay: false,
+          looping: true,
+          showControls: false,
+          errorBuilder: (_, string) {
+            return Container(
+                child: Center(
+              child: Icon(Icons.error),
+            ));
+          });
+      // await _chewieController.setVolume(0.0);
 
-    Chewie playerWidget = Chewie(
-      controller: chewieController,
-    );
+      Chewie playerWidget = Chewie(
+        controller: chewieController,
+      );
 
-    setState(() {
-      _playerWidget = playerWidget;
-      _videoPlayerController = videoPlayerController;
-      _chewieController = chewieController;
-    });
+      setState(() {
+        _playerWidget = playerWidget;
+        _videoPlayerController = videoPlayerController;
+        _chewieController = chewieController;
+      });
+    } catch (error) {
+      print('_chewieController error ${error}');
+      setState(() {
+        _error = error.toString();
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_chewieController != null &&
-        _chewieController.videoPlayerController.value.isInitialized) {
+        _chewieController.videoPlayerController.value.initialized) {
       return VisibilityDetector(
         key: UniqueKey(),
         onVisibilityChanged: (visibilityInfo) {
@@ -483,6 +493,14 @@ class _VideoPlayerThumbNailState extends State<VideoPlayerThumbNail> {
         ),
       );
     }
+
+    if (_error != null) {
+      return Container(
+          height: 400,
+          child: Center(
+              child: Center(child: Icon(Icons.error, color: Colors.white))));
+    }
+
     return Loading();
   }
 }

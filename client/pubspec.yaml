@@ -57,6 +57,13 @@ dependencies:
   video_compress: ^2.1.0
   flutter_image_compress: ^1.0.0
 
+dependency_overrides:
+  video_player:
+    git:
+      url: https://github.com/sanekyy/plugins.git
+      ref: caching
+      path: packages/video_player/video_player
+      
 dev_dependencies:
   flutter_test:
     sdk: flutter
